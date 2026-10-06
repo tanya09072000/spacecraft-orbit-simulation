@@ -1,0 +1,44 @@
+# ==========================================
+# MATLAB
+# ==========================================
+
+# MATLAB autosave / backup files
+*.asv
+*.m~
+*.autosave
+
+# MATLAB generated files
+*.slxc
+
+# ==========================================
+# Operating system
+# ==========================================
+
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Git
+# ==========================================
+
+.git/
+
+# ==========================================
+# Simulation results
+# ==========================================
+
+# Temporary results
+results/temp/
+
+# ==========================================
+# Third-party libraries
+# ==========================================
+
+# MATLAB MICE library
+Ephemerides/mice/
+
+# Old / unused code
+delete/
+
+# Large SPICE kernels
+Ephemerides/kernels/*.bsp
