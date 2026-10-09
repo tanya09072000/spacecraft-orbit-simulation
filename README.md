@@ -4,33 +4,47 @@ A MATLAB application for numerical simulation of spacecraft motion in
 Earth orbit, including selected perturbation models and visibility
 analysis for ground stations.
 
+The default scenario is a sun-synchronous low Earth orbit (altitude
+about 494 km, inclination about 97.5°) propagated for 4 days after
+separation, with two ground stations (Murmansk and Norilsk).
+
 ## Features
 
--   Numerical integration of the equations of motion using `ode113`.
+-   Numerical integration of the equations of motion using `ode113`
+    in the J2000 inertial frame.
 -   Central Earth gravity.
 -   Earth oblateness perturbation (`J2`).
 -   Atmospheric drag, including the effect of Earth's rotation.
--   Solar radiation pressure (SRP) and Earth shadowing.
--   Third-body gravitational perturbations from the Sun and Moon.
--   Calculation of orbital elements and ascending-node passages.
--   Visibility analysis for configured ground stations.
+-   Atmosphere models: NRLMSISE-00 (via a Python interface) and CIRA-72,
+    driven by daily space-weather data (F10.7, Ap, Kp).
+-   Solar radiation pressure (SRP) with a cylindrical Earth shadow.
+-   Third-body gravitational perturbations from the Sun and Moon
+    (DE440 ephemerides via SPICE).
+-   Calculation of orbital elements, ascending-node passages and LTAN.
+-   Visibility analysis for configured ground stations (elevation
+    history, sessions, maximum elevation, first contact).
 -   Plotting and simulation summary generation.
+-   Optional GUI: `OrbitalSimulationApp.mlapp` (MATLAB App Designer).
 
 ## Requirements
 
 -   MATLAB with support for `ode113`, `datetime`, and
     `griddedInterpolant`.
+-   **Aerospace Toolbox** (functions `dcmeci2ecef` and `juliandate`).
 -   **SPICE MICE for MATLAB** for calculations involving the Sun, Moon,
     or SRP.
 -   The SPICE ephemeris file `de440.bsp`. It is not included in the
     repository and must be obtained separately from an official NAIF
     source.
--   Python available from the command line as `python` for the NRLMSISE
-    atmosphere interface.
+-   Python 3 available from the command line as `python` for the
+    NRLMSISE atmosphere interface (no third-party Python packages are
+    required).
 
-For calculations using SPICE, make sure MICE is on the MATLAB path and
-that `de440.bsp` is located in `Ephemerides/kernels/`. The project also
-expects the `naif0012.tls` leap-seconds kernel.
+For calculations using SPICE, make sure MICE is on the MATLAB path
+(the repository ignores `Ephemerides/mice/`, so this is a natural place
+for it) and that `de440.bsp` is located in `Ephemerides/kernels/`. The
+project also expects the `naif0012.tls` leap-seconds kernel, which is
+already provided in that folder.
 
 For NRLMSISE, MATLAB launches `nrl_query.py` as a separate Python
 process. Verify that `python` is available in the environment used by
@@ -51,14 +65,24 @@ main
 from `config/inputData.m`, validates the input data, runs the
 simulation, creates plots, and prints a summary.
 
+The same workflow can be run step by step:
+
+``` matlab
+Data    = inputData();
+validateInputData(Data);
+Results = runSimulation(Data);
+```
+
 ## Configuring a Simulation
 
 The main input parameters are defined in `config/inputData.m`.
+Units: distances in km, velocities in km/s, angles in degrees.
 
 ### Scenario
 
-The `Scenario` structure contains the simulation epoch and duration,
-stop time, time system, and coordinate-frame settings.
+The `Scenario` structure contains the launch and separation times, the
+simulation duration, stop time, time system, and coordinate-frame
+settings.
 
 ### Spacecraft
 
@@ -79,6 +103,22 @@ The `Spacecraft` structure includes:
 For the orbital-elements mode, `a` is the semi-major axis in km, `e` is
 eccentricity, and `i`, `raan`, `argPerigee`, and `trueAnomaly` are
 angles in degrees.
+
+Note: `Orbit.LTAN` is currently informational only. The initial RAAN is
+taken from `Orbit.raan` and is not derived from LTAN, so these two
+settings must be kept consistent manually.
+
+### Ground Stations
+
+Each element of `Station` defines one station:
+
+| Field          | Meaning                              | Unit |
+|----------------|--------------------------------------|------|
+| `name`         | Station name                         | ---  |
+| `lat`          | Geodetic latitude                    | deg  |
+| `lon`          | Longitude (east positive)            | deg  |
+| `alt`          | Altitude above the ellipsoid         | km   |
+| `minElevation` | Minimum elevation for visibility     | deg  |
 
 ### Perturbation Models
 
@@ -106,45 +146,40 @@ and `SchaafChambre` are listed in the code but are not implemented and
 will fail if selected. The `Exponential` atmosphere option is also
 incomplete.
 
-The NRLMSISE model uses space-weather data from a CSV file under
-`Environment/DragCoefficient/atmosphere/common/`.
+The NRLMSISE and CIRA models use space-weather data from a CSV file
+under `Environment/DragCoefficient/atmosphere/common/`. Missing dates
+are linearly interpolated between the nearest available dates.
 
 ## Project Structure
 
-  -----------------------------------------------------------------------
-  Path                                Purpose
-  ----------------------------------- -----------------------------------
-  `main.m`                            Main entry point
+```
+.
+├── main.m                      Main entry point
+├── runSimulation.m             Coordinates the simulation workflow
+├── OrbitalSimulationApp.mlapp  Graphical interface
+├── config/                     Input scenario and model settings
+├── constants/                  Physical constants
+├── validation/                 Input-data validation
+├── dynamics/                   Equations of motion and perturbations
+├── orbit/                      State conversions, elements, LTAN
+├── Environment/                Atmospheric models, aerodynamics, shadow
+├── Ephemerides/                Ephemeris utilities and SPICE kernels
+├── groundStation/              Elevation and visibility calculations
+├── visualization/              Plots and ascending-node processing
+├── results/                    Simulation summary generation
+└── tests/                      Existing tests
+```
 
-  `runSimulation.m`                   Coordinates the simulation workflow
+## Models
 
-  `config/`                           Input scenario and model settings
-
-  `constants/`                        Physical constants
-
-  `dynamics/`                         Equations of motion and
-                                      perturbation models
-
-  `orbit/`                            State conversions and
-                                      orbital-element calculations
-
-  `Environment/`                      Atmospheric models, aerodynamics,
-                                      and shadow calculations
-
-  `Ephemerides/`                      Ephemeris utilities and SPICE
-                                      kernels
-
-  `groundStation/`                    Ground-station elevation and
-                                      visibility calculations
-
-  `visualization/`                    Plots and ascending-node processing
-
-  `results/`                          Simulation summary generation
-
-  `tests/`                            Existing tests
-
-  `validation/`                       Input-data validation
-  -----------------------------------------------------------------------
+-   **J2:** standard perturbing acceleration in the inertial frame.
+-   **Drag:** `a = -1/2 * Cx*A/m * rho * |v_rel| * v_rel`, with
+    `v_rel = v - omega x r` (the atmosphere co-rotates with the Earth).
+-   **SRP:** `a = P0 * (AU/d)^2 * Cr * A/m * s`, where `s` points away
+    from the Sun; the acceleration is zero inside the Earth's
+    cylindrical shadow.
+-   **Third bodies:** `a = mu * (r_rel/|r_rel|^3 - r_body/|r_body|^3)`
+    with geocentric positions of the Sun and Moon from SPICE.
 
 ## Outputs
 
@@ -157,7 +192,18 @@ Depending on the enabled models, the program can produce:
 -   a simulation summary.
 
 The results are collected in the `Results` structure returned by
-`runSimulation`.
+`runSimulation`:
+
+| Field           | Content                                              |
+|-----------------|------------------------------------------------------|
+| `Trajectory`    | Time [s] and state `[x y z vx vy vz]` [km, km/s]     |
+| `Visibility`    | Per-station elevation, sessions, first contact       |
+| `Orbit`         | Orbital-element history                              |
+| `AscendingNode` | Elements, altitude and LTAN at ascending nodes       |
+| `Summary`       | Key simulation results                               |
+| `Atmosphere`    | Atmosphere profile (only when drag is enabled)       |
+| `Data`          | Input data used for the run                          |
+| `Constants`     | Physical constants                                   |
 
 ## Comparison with STK
 
@@ -169,42 +215,42 @@ Norilsk ground station.
 
 Times are reported in UTCG.
 
-  Event                         STK            MATLAB           Difference (MATLAB − STK)
-  ----------------------------- -------------- -------------- ---------------------------
-  Ascending node, 19 Sep 2026   06:12:36.709   06:12:36.710                      +0.001 s
-  Ascending node, 23 Sep 2026   03:03:48.619   03:03:48.793                      +0.174 s
+| Event                         | STK          | MATLAB       | Difference (MATLAB − STK) |
+|-------------------------------|--------------|--------------|--------------------------:|
+| Ascending node, 19 Sep 2026   | 06:12:36.709 | 06:12:36.710 |                  +0.001 s |
+| Ascending node, 23 Sep 2026   | 03:03:48.619 | 03:03:48.793 |                  +0.174 s |
 
 ### Orbital elements on 23 Sep 2026
 
-  Parameter                          STK        MATLAB   Difference (MATLAB − STK)
-  --------------------- ---------------- ------------- ---------------------------
-  Semi-major axis         6872.390292 km   6872.391 km                +0.000708 km
-  Eccentricity                  0.001345      0.001340                   −0.000005
-  Inclination                    97.466°      97.4556°                    −0.0104°
-  RAAN                            3.936°       3.9349°                    −0.0011°
-  Argument of perigee           351.013°     351.1398°                    +0.1268°
-  True anomaly                    8.987°       8.8602°                    −0.1268°
+| Parameter           | STK            | MATLAB        | Difference (MATLAB − STK) |
+|---------------------|---------------:|--------------:|--------------------------:|
+| Semi-major axis     | 6872.390292 km | 6872.391 km   |              +0.000708 km |
+| Eccentricity        | 0.001345       | 0.001340      |                 −0.000005 |
+| Inclination         | 97.466°        | 97.4556°      |                  −0.0104° |
+| RAAN                | 3.936°         | 3.9349°       |                  −0.0011° |
+| Argument of perigee | 351.013°       | 351.1398°     |                  +0.1268° |
+| True anomaly        | 8.987°         | 8.8602°       |                  −0.1268° |
 
 The STK report displays some values with fewer decimal places than the
 MATLAB output. Differences for these parameters should therefore be
 interpreted with the rounding of the source report in mind.
 
+The argument of perigee and the true anomaly differ by equal and
+opposite amounts: their sum, the argument of latitude, is 360.000° in
+both solutions. For an orbit this close to circular (e ≈ 0.00135) the
+perigee direction is poorly defined, so this difference mainly reflects
+how the same position on the orbit is split between the two angles and
+does not indicate a position error.
+
 ### Norilsk ground-station visibility interval
 
 Times are reported in UTCG.
 
-  ------------------------------------------------------------------------
-  Parameter        STK              MATLAB            Difference (MATLAB −
-                                                                      STK)
-  ---------------- ---------------- ---------------- ---------------------
-  AOS / start of   19 Sep 2026      19 Sep 2026                   +1.951 s
-  visibility       05:04:33.979     05:04:35.930     
-
-  LOS / end of     19 Sep 2026      19 Sep 2026                   +6.619 s
-  visibility       05:09:42.282     05:09:48.901     
-
-  Duration         308.303 s        312.971 s                     +4.668 s
-  ------------------------------------------------------------------------
+| Parameter                | STK                      | MATLAB                   | Difference (MATLAB − STK) |
+|--------------------------|--------------------------|--------------------------|--------------------------:|
+| AOS / start of visibility | 19 Sep 2026 05:04:33.979 | 19 Sep 2026 05:04:35.930 |                  +1.951 s |
+| LOS / end of visibility   | 19 Sep 2026 05:09:42.282 | 19 Sep 2026 05:09:48.901 |                  +6.619 s |
+| Duration                  | 308.303 s                | 312.971 s                |                  +4.668 s |
 
 ### Interpretation
 
@@ -219,6 +265,23 @@ reproducible validation requires matching initial conditions, epoch,
 coordinate frames, time systems, perturbation models, and
 station-visibility criteria. Full-precision STK values should also be
 retained to distinguish physical differences from report rounding.
+
+## Known Limitations
+
+-   The atmosphere is evaluated for one point (latitude, longitude,
+    time) per `Environment.updateStep` and held constant over that
+    interval, so density variations along the orbit are not modelled.
+-   The altitude used for the density lookup is measured from a sphere
+    of radius `Re`, whereas the atmosphere model is defined in
+    geodetic altitude.
+-   The Earth shadow is cylindrical (no penumbra).
+-   Station visibility uses a simplified Earth rotation (GMST only,
+    without precession and nutation) and a geocentric local vertical.
+    This may contribute to AOS/LOS differences with STK.
+-   The aerodynamic coefficient model (`Legacy`) depends on a
+    wall-temperature polynomial whose validity range should be
+    reviewed.
+-   Run time is long because the integrator step is limited to 1 s.
 
 ## Important Notes
 
