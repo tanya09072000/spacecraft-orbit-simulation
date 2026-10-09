@@ -1,241 +1,83 @@
 function validateInputData(Data)
-%VALIDATEINPUTDATA Validate simulation input data.
-
-%% Constants
+%VALIDATEINPUTDATA Check simulation input data.
 
 C = orbConstants();
 
 %% Scenario
 
-if Data.Scenario.duration <= 0
-
-    error('Simulation duration must be greater than zero.');
-
+if seconds(Data.Scenario.duration) <= 0
+    error('Simulation duration must be positive.');
 end
 
 if Data.Scenario.stopTime <= Data.Scenario.separationTime
-
     error('Stop time must be later than separation time.');
-
 end
 
 %% Spacecraft
 
-if ~isfinite(Data.Spacecraft.mass) || ...
-        Data.Spacecraft.mass <= 0
-
-    error('Spacecraft mass must be greater than zero.');
-
+if ~isfinite(Data.Spacecraft.mass) || Data.Spacecraft.mass <= 0
+    error('Spacecraft mass must be positive.');
 end
 
-if ~isfinite(Data.Spacecraft.area) || ...
-        Data.Spacecraft.area <= 0
-
-    error('Reference area must be greater than zero.');
-
+if ~isfinite(Data.Spacecraft.area) || Data.Spacecraft.area <= 0
+    error('Reference area must be positive.');
 end
 
-if ~isfinite(Data.Spacecraft.Cr) || ...
-        Data.Spacecraft.Cr < 0
-
-    error('Reflectivity coefficient Cr must be non-negative.');
-
-end
-
-%% Initial state mode
-
-if ~isfield(Data.InitialState,'mode')
-
-    error('Initial state mode is not specified.');
-
+if ~isfinite(Data.Spacecraft.Cr) || Data.Spacecraft.Cr < 0
+    error('Cr must be finite and non-negative.');
 end
 
 %% Initial state
 
-switch Data.InitialState.mode
+if ~isfield(Data.InitialState, 'mode')
+    error('Initial state mode is not specified.');
+end
 
-    %% Orbital elements
+switch Data.InitialState.mode
 
     case "OrbitalElements"
 
         a = Data.Orbit.a;
         e = Data.Orbit.e;
-        i = Data.Orbit.i;
-        raan = Data.Orbit.raan;
-        argPerigee = Data.Orbit.argPerigee;
-        trueAnomaly = Data.Orbit.trueAnomaly;
+        angles = [Data.Orbit.i, Data.Orbit.raan, ...
+                  Data.Orbit.argPerigee, Data.Orbit.trueAnomaly];
 
-        %% Check numerical values
-
-        elements = [
-            a
-            e
-            i
-            raan
-            argPerigee
-            trueAnomaly
-        ];
-
-        if any(~isfinite(elements))
-
-            error('Orbital elements must contain only finite numeric values.');
-
+        if any(~isfinite([a, e, angles])) || ...
+                a <= C.Re || e < 0 || e >= 1
+            error('Invalid orbital elements.');
         end
 
-        %% Semi-major axis
-
-        if a <= C.Re
-
-            error(['Semi-major axis must be greater than Earth radius. ', ...
-                   'Current value: %.3f km.'], a);
-
+        if angles(1) < 0 || angles(1) > 180 || ...
+                any(angles(2:4) < 0) || any(angles(2:4) >= 360)
+            error('Invalid orbital angles.');
         end
 
-        %% Eccentricity
-
-        if e < 0 || e >= 1
-
-            error(['Eccentricity must satisfy 0 <= e < 1 ', ...
-                   'for a closed Earth orbit.']);
-
+        if a*(1-e) <= C.Re
+            error('Orbital perigee is inside the Earth.');
         end
-
-        %% Inclination
-
-        if i < 0 || i > 180
-
-            error('Inclination must be between 0 and 180 deg.');
-
-        end
-
-        %% Angles
-
-        if raan < 0 || raan >= 360
-
-            error('RAAN must be between 0 and 360 deg.');
-
-        end
-
-        if argPerigee < 0 || argPerigee >= 360
-
-            error('Argument of perigee must be between 0 and 360 deg.');
-
-        end
-
-        if trueAnomaly < 0 || trueAnomaly >= 360
-
-            error('True anomaly must be between 0 and 360 deg.');
-
-        end
-
-        %% Perigee altitude
-
-        perigeeRadius = a * (1 - e);
-
-        perigeeHeight = perigeeRadius - C.Re;
-
-        if perigeeHeight <= 0
-
-            error(['Perigee is inside the Earth. ', ...
-                   'Perigee altitude: %.3f km.'], ...
-                   perigeeHeight);
-
-        end
-
-
-    %% State vector
 
     case "StateVector"
 
-        r = Data.InitialState.position;
-        v = Data.InitialState.velocity;
+        r = Data.InitialState.position(:);
+        v = Data.InitialState.velocity(:);
 
-        %% Check dimensions
-
-        if numel(r) ~= 3
-
-            error('Position vector must contain exactly 3 components.');
-
+        if numel(r) ~= 3 || numel(v) ~= 3 || ...
+                any(~isfinite([r; v]))
+            error('Position and velocity must contain 3 finite components each.');
         end
 
-        if numel(v) ~= 3
-
-            error('Velocity vector must contain exactly 3 components.');
-
+        if norm(r) <= C.Re || norm(v) <= 0
+            error('Invalid initial position or velocity.');
         end
 
-        %% Convert to column vectors
-
-        r = r(:);
-        v = v(:);
-
-        %% Check numerical values
-
-        if any(~isfinite(r)) || any(~isfinite(v))
-
-            error('State vector must contain only finite numeric values.');
-
-        end
-
-        %% Position magnitude
-
-        radius = norm(r);
-
-        if radius <= C.Re
-
-            error(['Spacecraft position is inside the Earth. ', ...
-                   'Altitude: %.3f km.'], ...
-                   radius - C.Re);
-
-        end
-
-        %% Velocity magnitude
-
-        velocity = norm(v);
-
-        if velocity <= 0
-
-            error('Velocity magnitude must be greater than zero.');
-
-        end
-
-        %% Calculate orbital elements
-
-        elements = stateVectorToOrbitalElements( ...
-            [r; v], C);
-
+        elements = stateVectorToOrbitalElements([r; v], C);
         a = elements(1);
         e = elements(2);
 
-        %% Check orbit type
-
-        if ~isfinite(a) || ~isfinite(e)
-
-            error('Unable to calculate valid orbital elements from the state vector.');
-
+        if ~isfinite(a) || ~isfinite(e) || e < 0 || e >= 1 || ...
+                a*(1-e) <= C.Re
+            error('State vector does not define a valid closed Earth orbit.');
         end
-
-        if e >= 1
-
-            error(['The specified state vector does not define a closed ', ...
-                   'Earth orbit (eccentricity = %.4f).'], e);
-
-        end
-
-        %% Perigee altitude
-
-        perigeeRadius = a * (1 - e);
-
-        perigeeHeight = perigeeRadius - C.Re;
-
-        if perigeeHeight <= 0
-
-            error(['State vector results in a trajectory with perigee ', ...
-                   'inside the Earth. Perigee altitude: %.3f km.'], ...
-                   perigeeHeight);
-
-        end
-
 
     otherwise
 
