@@ -20,6 +20,26 @@ The example scenario is a low Earth orbit with an altitude of approximately 494 
 - Plots and simulation-summary generation.
 - Optional MATLAB App Designer GUI: `OrbitalSimulationApp.mlapp`.
 
+## External Dependencies and Required Files
+
+Some dependencies and data files are not distributed with this repository. Download them only from the official sources below, and keep large binary kernels and private station coordinates out of Git.
+
+| Dependency / file | Required when | Official source | Destination / setup |
+|---|---|---|---|
+| **DE440 planetary ephemeris** (`de440.bsp`) | For SPICE-based Sun/Moon calculations and any force model that requests these ephemerides | [Download `de440.bsp` from NAIF](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de440.bsp) | Place at `Ephemerides/kernels/de440.bsp` |
+| DE430 planetary ephemeris (`de430.bsp`) | Only if the code or a validation scenario explicitly requests DE430 instead of DE440 | [Download `de430.bsp` from NAIF](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/de430.bsp) | Place at `Ephemerides/kernels/de430.bsp`; not normally needed if using DE440 |
+| **SPICE MICE for MATLAB** | For functions that call SPICE | [Official NAIF MATLAB Toolkit page](https://naif.jpl.nasa.gov/naif/toolkit_MATLAB.html) and [MICE toolkit documentation](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/MATLAB/info/dscriptn.html) | Download the package appropriate for your OS and MATLAB environment, install/build it following NAIF instructions, then add the MICE MATLAB directories to the MATLAB path. `Ephemerides/mice/` is the suggested local location if compatible with the downloaded package. |
+| `naif0012.tls` leap-seconds kernel | For SPICE time conversions | [Download `naif0012.tls` from NAIF](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/naif0012.tls) | The repository is intended to contain this at `Ephemerides/kernels/naif0012.tls`. Download only if it is missing. |
+| `config/privateStations.m` | Required by the current local station configuration | No download link; create locally | Place at `config/privateStations.m`. It must define `privateStations()` and return the `Station` structure. Do not commit it if it contains confidential coordinates. |
+| Python 3 | When using the NRLMSISE-00 Python interface | [Python downloads](https://www.python.org/downloads/) | Install Python and ensure `python` is available from the same environment that launches MATLAB. |
+| NRLMSISE-00 Python interface and space-weather CSV | When using atmospheric drag with NRLMSISE | The project expects its own `nrl_query.py` and space-weather CSV in the project tree; confirm these files are present in the cloned repository. For the underlying model, see [NASA/NSSDC NRLMSISE-00 information](https://ccmc.gsfc.nasa.gov/models/NRLMSISE00~2001/). | Keep the script and CSV at the paths expected by the code. Do not download a substitute CSV or change its format unless the implementation is updated accordingly. |
+
+### Which files should I download?
+
+For the documented DE440 configuration, start with **`de440.bsp`**, MICE (if using SPICE-dependent models), and a local `config/privateStations.m`. You normally do not need `de430.bsp` as well. Check whether `naif0012.tls`, the NRLMSISE script, and the space-weather CSV are already present before downloading anything.
+
+The NAIF planetary-kernel directory contains both DE430 and DE440; these are large binary files and are intentionally not tracked in the repository. [NAIF planetary SPK directory](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/). [NAIF planetary SPK directory](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/), [NAIF leap-seconds kernels](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/), and [MICE documentation](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/MATLAB/info/dscriptn.html).
+
 ## Requirements
 
 ### MATLAB
@@ -39,9 +59,7 @@ The repository's Python interface is launched as a separate process. This README
 
 ### External SPICE data
 
-- `de440.bsp` is not included in this repository and must be obtained separately from an official NAIF source.
-- `naif0012.tls` is used as the leap-seconds kernel. Verify that it is present in `Ephemerides/kernels/`.
-- MICE is not included in the repository. Install it separately and add its MATLAB files to the MATLAB path.
+See **External Dependencies and Required Files** above for official download links and destination paths. The project README describes `de440.bsp` as the primary ephemeris; download DE430 only if your selected code path explicitly requires it.
 
 ## Quick Start
 
