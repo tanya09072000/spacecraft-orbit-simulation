@@ -6,7 +6,7 @@ analysis for ground stations.
 
 The default scenario is a sun-synchronous low Earth orbit (altitude
 about 494 km, inclination about 97.5°) propagated for 4 days after
-separation, with two ground stations (Murmansk and Norilsk).
+separation, with two locally configured ground stations.
 
 ## Features
 
@@ -208,8 +208,9 @@ The results are collected in the `Results` structure returned by
 ## Comparison with STK
 
 The MATLAB results were compared with STK using ascending-node times,
-orbital elements at a reference epoch, and a visibility interval for the
-Norilsk ground station.
+orbital elements at a reference epoch, and a visibility interval for one
+reference ground station. The station's identity and coordinates are not
+published in this README.
 
 ### Ascending-node times
 
@@ -242,7 +243,7 @@ perigee direction is poorly defined, so this difference mainly reflects
 how the same position on the orbit is split between the two angles and
 does not indicate a position error.
 
-### Norilsk ground-station visibility interval
+### Reference ground-station visibility interval
 
 Times are reported in UTCG.
 
@@ -256,8 +257,8 @@ Times are reported in UTCG.
 
 In this comparison, ascending-node times agree within 0.174 s, and the
 reported semi-major axes differ by approximately 0.7 m. Differences
-remain in inclination and argument of perigee. The Norilsk visibility
-duration differs by 4.668 s.
+remain in inclination and argument of perigee. The reference station's
+visibility duration differs by 4.668 s.
 
 This comparison is a useful reference case, but it does not by itself
 demonstrate full equivalence between the MATLAB and STK models. A
