@@ -38,7 +38,7 @@ Some dependencies and data files are not distributed with this repository. Downl
 
 For the documented DE440 configuration, start with **`de440.bsp`**, MICE (if using SPICE-dependent models), and a local `config/privateStations.m`. You normally do not need `de430.bsp` as well. Check whether `naif0012.tls`, the NRLMSISE script, and the space-weather CSV are already present before downloading anything.
 
-The NAIF planetary-kernel directory contains both DE430 and DE440; these are large binary files and are intentionally not tracked in the repository. [NAIF planetary SPK directory](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/). [NAIF planetary SPK directory](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/), [NAIF leap-seconds kernels](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/), and [MICE documentation](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/MATLAB/info/dscriptn.html).
+The NAIF planetary-kernel directory contains both DE430 and DE440; these are large binary files and are intentionally not tracked in the repository. [NAIF planetary SPK directory](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/planets/). [NAIF leap-seconds kernels](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/lsk/), and [MICE documentation](https://naif.jpl.nasa.gov/pub/naif/toolkit_docs/MATLAB/info/dscriptn.html).
 
 ## Requirements
 
