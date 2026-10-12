@@ -168,14 +168,6 @@ Summary.finalAscendingNodeElements = [
     deg2rad(nuF)
 ];
 
-%% Final elements
-
-% Keep the finalElements field for compatibility with the GUI.
-% These elements correspond to the last ascending node.
-
-Summary.finalElements = ...
-    Summary.finalAscendingNodeElements;
-
 %% Store semi-major axis information
 
 Summary.initialSemiMajorAxis = a0;

@@ -1,3 +1,4 @@
+
 # ==========================================
 # MATLAB
 # ==========================================
@@ -42,3 +43,10 @@ delete/
 
 # Large SPICE kernels
 Ephemerides/kernels/*.bsp
+
+# ==========================================
+# Private configuration
+# ==========================================
+
+# Local ground station coordinates
+config/privateStations.m

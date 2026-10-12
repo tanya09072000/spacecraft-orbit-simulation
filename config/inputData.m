@@ -11,6 +11,8 @@ function Data = inputData()
 %          Environment
 %          Model
 
+projectRoot = fileparts(fileparts(mfilename('fullpath')));
+
 %% Launch parameters
 Scenario.launchTime     = datetime(2026, 09, 19, 4, 30, 0);
 Scenario.separationTime = datetime(2026,09,19,4,38,11);
@@ -53,19 +55,30 @@ OrbitTolerance.di = 3;          % Inclination deviation [arcmin]
 OrbitTolerance.de = 0.001;      % Eccentricity deviation
 OrbitTolerance.dOmega = 3;      % RAAN deviation [arcmin]
 
+
 %% Ground stations
 
-Station(1).name = "Murmansk";
-Station(1).lat = 68.9717;       % Latitude [deg]
-Station(1).lon = 33.0819;       % Longitude [deg]
-Station(1).alt = 0.05;          % Altitude [km]
-Station(1).minElevation = 7;    % Minimum elevation [deg]
+Station(1).name = "Station_1";
+Station(1).lat = NaN;
+Station(1).lon = NaN;
+Station(1).alt = 0.05;
+Station(1).minElevation = 7;
 
-Station(2).name = "Norilsk";
-Station(2).lat = 69.3333;       % Latitude [deg]
-Station(2).lon = 88.2167;       % Longitude [deg]
-Station(2).alt = 0.09;          % Altitude [km]
-Station(2).minElevation = 7;    % Minimum elevation [deg]
+Station(2).name = "Station_2";
+Station(2).lat = NaN;
+Station(2).lon = NaN;
+Station(2).alt = 0.09;
+Station(2).minElevation = 7;
+
+% Load local station configuration
+privateConfig = fullfile(projectRoot, 'config', 'privateStations.m');
+
+if isfile(privateConfig)
+    Station = privateStations();
+else
+    error(['Station coordinates are missing. ', ...
+           'Create config/privateStations.m locally.']);
+end
 
 %% Atmospheric model
 
